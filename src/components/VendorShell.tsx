@@ -76,13 +76,13 @@ export default function VendorShell() {
 
       <main className="flex-1"><Outlet /></main>
 
-      <footer className="bg-peach-100">
+      {!pathname.startsWith(`${B}/dashboard`) && <footer className="bg-peach-100">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-sm text-gray-600 sm:flex-row">
           <MarketLogo to={B} className="h-14" />
           <div className="flex gap-5"><Link to="/marketplace" className="hover:text-mred-600">Visit Marketplace</Link><Link to="/" className="hover:text-mred-600">Umeed of Life</Link></div>
           <span className="text-xs">© {new Date().getFullYear()} Umeed of Life</span>
         </div>
-      </footer>
+      </footer>}
     </div>
   )
 }

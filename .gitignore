@@ -2,14 +2,3 @@ node_modules
 dist
 .env
 .env.local
-
-node_modules/
-.env
-.env.*
-!.env.example
-.next/
-dist/
-build/
-.vercel/
-coverage/
-*.log

@@ -6,11 +6,12 @@ import { useToast } from '../../components/Toast'
 import CountUp from '../../components/CountUp'
 import Icon from '../../components/Icon'
 import { ErrorNote, useRows } from '../../components/ui'
+import Registrations from './Registrations'
 
 const ASSIGNABLE = ['customer', 'marketplace_staff', 'marketplace_head', 'central_admin', 'finance_manager', 'hr_manager', 'it_manager', 'co_ceo', 'ceo']
 const STAFF = ['ceo', 'co_ceo', 'central_admin', 'finance_manager', 'hr_manager', 'it_manager', 'marketplace_head', 'marketplace_staff']
 
-export default function Staff() {
+function UsersTab() {
   const { session } = useAuth()
   const toast = useToast()
   const [q, setQ] = useState('')
@@ -53,6 +54,21 @@ export default function Staff() {
               </tr>))}
           </tbody></table>
       </div>
+    </div>
+  )
+}
+
+export default function Staff() {
+  const [tab, setTab] = useState<'users' | 'reg'>('users')
+  const [fresh, setFresh] = useState(0)
+  return (
+    <div className="space-y-6">
+      <div className="inline-flex gap-1 rounded-full bg-gray-100 p-1 text-sm font-semibold">
+        <button onClick={() => setTab('users')} className={`rounded-full px-5 py-2 transition ${tab === 'users' ? 'bg-white shadow' : 'text-gray-500'}`}>All accounts</button>
+        <button onClick={() => setTab('reg')} className={`flex items-center gap-2 rounded-full px-5 py-2 transition ${tab === 'reg' ? 'bg-white shadow' : 'text-gray-500'}`}>Team registrations{fresh > 0 && <span className="rounded-full bg-gold-400 px-2 text-[11px] font-bold text-brand-900">{fresh}</span>}</button>
+      </div>
+      {tab === 'users' ? <UsersTab /> : null}
+      <div className={tab === 'reg' ? '' : 'hidden'}><Registrations onCount={setFresh} /></div>
     </div>
   )
 }

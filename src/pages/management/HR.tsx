@@ -2,8 +2,9 @@ import { FormEvent, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { Row } from '../../lib/format'
 import { Empty, ErrorNote, StatusBadge, useRows } from '../../components/ui'
+import Registrations from './Registrations'
 
-export default function HR() {
+function EmployeesTab() {
   const { data, error, reload } = useRows(() => supabase.from('employee_profiles').select('*').order('created_at', { ascending: false }))
   const [err, setErr] = useState('')
 
@@ -50,6 +51,21 @@ export default function HR() {
             ))}</tbody></table></div>
         )}
       </div>
+    </div>
+  )
+}
+
+export default function HR() {
+  const [tab, setTab] = useState<'emp' | 'reg'>('emp')
+  const [fresh, setFresh] = useState(0)
+  return (
+    <div className="space-y-6">
+      <div className="inline-flex gap-1 rounded-full bg-gray-100 p-1 text-sm font-semibold">
+        <button onClick={() => setTab('emp')} className={`rounded-full px-5 py-2 transition ${tab === 'emp' ? 'bg-white shadow' : 'text-gray-500'}`}>Employees</button>
+        <button onClick={() => setTab('reg')} className={`flex items-center gap-2 rounded-full px-5 py-2 transition ${tab === 'reg' ? 'bg-white shadow' : 'text-gray-500'}`}>Team registrations{fresh > 0 && <span className="rounded-full bg-gold-400 px-2 text-[11px] font-bold text-brand-900">{fresh}</span>}</button>
+      </div>
+      {tab === 'emp' && <EmployeesTab />}
+      <div className={tab === 'reg' ? '' : 'hidden'}><Registrations onCount={setFresh} /></div>
     </div>
   )
 }

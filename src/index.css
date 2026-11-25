@@ -65,3 +65,13 @@
 .animate-toast { animation: toast-in .3s ease-out; }
 .animate-pop { animation: pop-in .18s ease-out; }
 @media (prefers-reduced-motion: reduce) { .skeleton::after, .animate-toast, .animate-pop { animation: none; } }
+
+/* ---------- accent helpers: red in the marketplace/vendor area, green inside the central dashboard ---------- */
+@layer components {
+  .acc-solid { @apply bg-mred-600 text-white; }
+  .acc-soft { @apply bg-peach-100 text-mred-700; }
+  .acc-bar { @apply bg-mred-600; }
+  .theme-central .acc-solid { @apply bg-brand-700 text-white; }
+  .theme-central .acc-soft { @apply bg-brand-50 text-brand-800; }
+  .theme-central .acc-bar { @apply bg-brand-700; }
+}

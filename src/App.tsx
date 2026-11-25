@@ -23,6 +23,7 @@ import Careers from './pages/Careers'
 import News from './pages/News'
 import Contact from './pages/Contact'
 import ManagementLogin from './pages/ManagementLogin'
+import StaffRegistration from './pages/management/StaffRegistration'
 import NotFound from './pages/NotFound'
 import MarketNotFound from './components/MarketNotFound'
 import ManagementLayout from './pages/management/ManagementLayout'
@@ -84,6 +85,9 @@ export default function App() {
               <Route path="/management/login" element={<ManagementLogin />} />
               <Route path="*" element={<NotFound />} />
             </Route>
+
+            {/* Hidden team registration form — opened only by typing the URL; no link points here */}
+            <Route path="/management/registration" element={<StaffRegistration />} />
 
             {/* ===== Central management dashboard (full screen, no public header/footer) ===== */}
             <Route path="/management" element={<RequireRole roles={CENTRAL_ROLES} loginPath="/management/login"><ManagementLayout /></RequireRole>}>

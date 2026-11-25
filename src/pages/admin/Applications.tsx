@@ -3,7 +3,9 @@ import { supabase } from '../../lib/supabase'
 import { Row, dt } from '../../lib/format'
 import { useToast } from '../../components/Toast'
 import Icon from '../../components/Icon'
-import { Empty, ErrorNote, Spinner, StatusBadge, useRows } from '../../components/ui'
+import { StatusBadge, useRows } from '../../components/ui'
+import { EmptyState, Notice, PageLoading, Panel } from '../vendor/dashboard/parts'
+import { Avatar, Card, Chips, SearchInput } from './bits'
 
 const GROUPS: [string, [string, string][]][] = [
   ['Applicant', [['applicant_type', 'Type'], ['legal_name', 'Legal name'], ['id_number', 'ID number'], ['email', 'Email'], ['phone', 'Phone'], ['address', 'Address'], ['city', 'City']]],
@@ -56,46 +58,62 @@ export default function Applications() {
 
   if (sel) {
     const need = ['id_front', 'id_back'].filter((t) => !docs.some((d) => d.doc_type === t || (t === 'id_front' && d.doc_type === 'identity')))
+    const holderOk = bank && String(bank.account_holder).trim().toLowerCase() === String(sel.legal_name).trim().toLowerCase()
     return (
       <div className="animate-fade-in space-y-5">
-        <button onClick={() => setSel(null)} className="flex items-center gap-1 text-sm font-semibold text-mred-600"><Icon name="left" className="h-4 w-4" />Back to applications</button>
-        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-display text-2xl font-bold">{sel.business_name}</h2><StatusBadge s={sel.status} /></div>
-        <div className="grid gap-5 lg:grid-cols-3">
+        <button onClick={() => setSel(null)} className="inline-flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-mred-600"><Icon name="left" className="h-4 w-4" />Back to applications</button>
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <Avatar name={sel.business_name} size="h-14 w-14" />
+          <div className="min-w-0 flex-1"><h2 className="truncate font-sans text-xl font-bold text-ink">{sel.business_name}</h2><p className="text-sm text-gray-500">{sel.legal_name} • {sel.email} • {sel.city}</p><p className="text-xs text-gray-400">Submitted {dt(sel.submitted_at)}</p></div>
+          <StatusBadge s={sel.status} />
+        </div>
+        <div className="grid items-start gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
             {GROUPS.map(([title, fields]) => (
-              <section key={title} className="card"><h3 className="font-sans text-base font-bold">{title}</h3>
-                <dl className="mt-3 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{fields.map(([k, l]) => <div key={k}><dt className="text-xs text-gray-500">{l}</dt><dd className="break-words">{sel[k] || '—'}</dd></div>)}</dl></section>
+              <Panel key={title} title={title}>
+                <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">{fields.map(([k, l]) => <div key={k}><dt className="text-xs text-gray-400">{l}</dt><dd className="mt-0.5 break-words text-ink">{sel[k] || '—'}</dd></div>)}</dl>
+              </Panel>
             ))}
-            <section className="card"><h3 className="font-sans text-base font-bold">Documents</h3>
-              {need.length > 0 && <p className="mt-2 rounded-lg bg-orange-50 p-2 text-xs text-orange-800">Missing: {need.map((n) => DOC_LABEL[n]).join(', ')}</p>}
-              {!docs.length ? <p className="mt-2 text-sm text-gray-500">None uploaded.</p> : docs.map((d) => (
-                <div key={d.id} className="mt-2 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm"><span><b>{DOC_LABEL[d.doc_type] ?? d.doc_type}</b> <span className="text-xs text-gray-500">{String(d.file_path).split('/').pop()}</span></span>
-                  <button onClick={() => view(d.file_path)} className="btn-red-outline btn-sm">Open</button></div>
-              ))}
-            </section>
+            <Panel title="Documents">
+              {need.length > 0 && <div className="mb-3"><Notice tone="amber">Missing: {need.map((n) => DOC_LABEL[n]).join(', ')}</Notice></div>}
+              {!docs.length ? <p className="text-sm text-gray-500">None uploaded.</p> : (
+                <ul className="space-y-2">{docs.map((d) => (
+                  <li key={d.id} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 text-sm">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-gray-500 ring-1 ring-gray-200"><Icon name="file" className="h-4 w-4" /></span>
+                    <span className="min-w-0 flex-1"><b className="block text-ink">{DOC_LABEL[d.doc_type] ?? d.doc_type}</b><span className="block truncate text-xs text-gray-500">{String(d.file_path).split('/').pop()}</span></span>
+                    <button onClick={() => view(d.file_path)} className="btn-red-outline btn-sm">Open</button></li>))}</ul>)}
+            </Panel>
           </div>
 
-          <div className="space-y-5">
-            <section className="card"><h3 className="font-sans text-base font-bold">Payout account</h3>
-              {bank ? <dl className="mt-3 space-y-2 text-sm"><div><dt className="text-xs text-gray-500">Account holder</dt><dd>{bank.account_holder}</dd></div><div><dt className="text-xs text-gray-500">Bank</dt><dd>{bank.bank_name}</dd></div><div><dt className="text-xs text-gray-500">Account</dt><dd>•••• {bank.account_last4}</dd></div>
-                <p className={`rounded-lg p-2 text-xs ${String(bank.account_holder).trim().toLowerCase() === String(sel.legal_name).trim().toLowerCase() ? 'bg-green-50 text-green-800' : 'bg-orange-50 text-orange-800'}`}>{String(bank.account_holder).trim().toLowerCase() === String(sel.legal_name).trim().toLowerCase() ? 'Account holder matches the legal name.' : 'Account holder differs from the legal name — check.'}</p></dl>
-                : <p className="mt-2 text-sm text-gray-500">Not provided yet.</p>}
-              <p className="mt-3 text-[11px] text-gray-400">Full account numbers are visible to Finance only.</p></section>
+          <div className="space-y-5 lg:sticky lg:top-24">
+            <Panel title="Payout account">
+              {bank ? (
+                <dl className="space-y-3 text-sm"><div><dt className="text-xs text-gray-400">Account holder</dt><dd className="text-ink">{bank.account_holder}</dd></div><div><dt className="text-xs text-gray-400">Bank</dt><dd className="text-ink">{bank.bank_name}</dd></div><div><dt className="text-xs text-gray-400">Account</dt><dd className="text-ink">•••• {bank.account_last4}</dd></div>
+                  <Notice tone={holderOk ? 'green' : 'amber'}>{holderOk ? 'Account holder matches the legal name.' : 'Account holder differs from the legal name — check.'}</Notice></dl>
+              ) : <p className="text-sm text-gray-500">Not provided yet.</p>}
+              <p className="mt-3 text-[11px] text-gray-400">Full account numbers are visible to Finance only.</p>
+            </Panel>
 
-            {hist.length > 0 && <section className="card"><h3 className="font-sans text-base font-bold">History</h3>
-              <ul className="mt-3 space-y-3">{hist.map((e) => <li key={e.id} className="text-sm"><b>{ACTION[e.action] ?? e.action}</b>{e.note && <span className="block text-gray-600">{e.note}</span>}<span className="text-xs text-gray-400">{dt(e.created_at)}</span></li>)}</ul></section>}
+            {hist.length > 0 && (
+              <Panel title="History">
+                <ul className="space-y-4 border-l-2 border-gray-100 pl-4">{hist.map((e) => (
+                  <li key={e.id} className="relative text-sm"><span className="absolute -left-[22px] top-1.5 h-2.5 w-2.5 rounded-full acc-bar ring-4 ring-white" />
+                    <b className="text-ink">{ACTION[e.action] ?? e.action}</b>{e.note && <span className="block text-gray-600">{e.note}</span>}<span className="text-xs text-gray-400">{dt(e.created_at)}</span></li>))}</ul>
+              </Panel>)}
 
             {sel.status === 'under_review' ? (
-              <section className="card space-y-3"><h3 className="font-sans text-base font-bold">Your decision</h3>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Decision note (required) — the applicant will see it" className="input" />
-                <div className="flex flex-wrap gap-1.5">{[...TEMPLATES.approve, ...TEMPLATES.reject, ...TEMPLATES.info].map((t) => <button key={t} type="button" onClick={() => setNote(t)} className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] hover:bg-gray-200">{t}</button>)}</div>
-                <div className="flex flex-col gap-2">
-                  <button disabled={!note.trim() || busy} onClick={() => decide('approved')} className="btn-red">Approve & activate account</button>
-                  <button disabled={!note.trim() || busy} onClick={() => decide('more_information')} className="btn-red-outline">Request more information</button>
-                  <button disabled={!note.trim() || busy} onClick={() => decide('rejected')} className="btn-peach">Decline</button>
+              <Panel title="Your decision">
+                <div className="space-y-3">
+                  <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Decision note (required) — the applicant will see it" className="input" />
+                  <div className="flex flex-wrap gap-1.5">{[...TEMPLATES.approve, ...TEMPLATES.reject, ...TEMPLATES.info].map((t) => <button key={t} type="button" onClick={() => setNote(t)} className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] text-gray-700 hover:bg-gray-200">{t}</button>)}</div>
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button disabled={!note.trim() || busy} onClick={() => decide('approved')} className="btn-red">Approve &amp; activate account</button>
+                    <button disabled={!note.trim() || busy} onClick={() => decide('more_information')} className="btn-red-outline">Request more information</button>
+                    <button disabled={!note.trim() || busy} onClick={() => decide('rejected')} className="btn-peach">Decline</button>
+                  </div>
                 </div>
-              </section>
-            ) : <section className="card text-sm"><b>Decision note:</b> {sel.decision_note || '—'}</section>}
+              </Panel>
+            ) : <Panel title="Decision note"><p className="text-sm text-gray-700">{sel.decision_note || '—'}</p></Panel>}
           </div>
         </div>
       </div>
@@ -103,18 +121,22 @@ export default function Applications() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-1 rounded-full bg-gray-100 p-1 text-xs font-semibold">
-        {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`flex-1 whitespace-nowrap rounded-full px-3 py-2 transition ${tab === k ? 'bg-white shadow' : 'text-gray-500'}`}>{l} <span className={`ml-1 rounded-full px-1.5 ${k === 'under_review' && count(k) > 0 ? 'bg-gold-400 text-brand-900' : 'text-gray-400'}`}>{count(k)}</span></button>)}
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Chips value={tab} onChange={setTab} items={TABS.map(([k, l]) => [k, l, count(k)])} />
+        <SearchInput value={q} onChange={setQ} placeholder="Business, name, email, city" />
       </div>
-      <div className="relative max-w-sm"><Icon name="search" className="absolute left-4 top-3.5 h-4 w-4 text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search business, name, email, city" className="input !pl-10" /></div>
-      {loading ? <Spinner /> : error ? <ErrorNote>{error}</ErrorNote> : !rows.length ? <Empty>No applications in this view.</Empty> : (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white"><table className="w-full text-sm">
-          <thead><tr><th className="th">Business</th><th className="th">Type</th><th className="th">City</th><th className="th">Submitted</th><th className="th">Status</th><th className="th"></th></tr></thead>
-          <tbody>{rows.map((a: Row) => (
-            <tr key={a.id} className="transition hover:bg-gray-50"><td className="td"><b>{a.business_name}</b><br /><span className="text-xs text-gray-500">{a.legal_name} • {a.email}</span></td><td className="td">{a.applicant_type}</td><td className="td">{a.city}</td>
-              <td className="td">{dt(a.submitted_at)}</td><td className="td"><StatusBadge s={a.status} /></td><td className="td"><button onClick={() => open(a)} className="btn-red btn-sm">{a.status === 'under_review' ? 'Review' : 'View'}</button></td></tr>
-          ))}</tbody></table></div>
+      {loading ? <PageLoading /> : error ? <Notice tone="red">{error}</Notice> : !rows.length ? <EmptyState icon="users" title="No applications in this view" text={tab === 'under_review' ? 'You are all caught up.' : 'Try another tab or search.'} /> : (
+        <Card>
+          <div className="overflow-x-auto"><table className="w-full text-sm">
+            <thead className="bg-gray-50"><tr><th className="th pl-5">Business</th><th className="th">Type</th><th className="th">City</th><th className="th">Submitted</th><th className="th">Status</th><th className="th pr-5" /></tr></thead>
+            <tbody>{rows.map((a: Row) => (
+              <tr key={a.id} className="transition hover:bg-gray-50/60">
+                <td className="td pl-5"><div className="flex items-center gap-3"><Avatar name={a.business_name} /><div className="min-w-0"><p className="font-semibold text-ink">{a.business_name}</p><p className="truncate text-xs text-gray-500">{a.legal_name} • {a.email}</p></div></div></td>
+                <td className="td capitalize">{a.applicant_type}</td><td className="td">{a.city}</td>
+                <td className="td whitespace-nowrap text-gray-500">{dt(a.submitted_at)}</td><td className="td"><StatusBadge s={a.status} /></td>
+                <td className="td whitespace-nowrap pr-5 text-right"><button onClick={() => open(a)} className={a.status === 'under_review' ? 'btn-red btn-sm' : 'btn-red-outline btn-sm'}>{a.status === 'under_review' ? 'Review' : 'View'}</button></td></tr>))}</tbody></table></div>
+        </Card>
       )}
     </div>
   )
